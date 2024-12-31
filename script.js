@@ -179,16 +179,7 @@ async function calculateTotalAllowance() {
 
 async function loadFirebaseConfig() {
     try {
-        // Get the base path from the current script location
-        const basePath = window.location.pathname.includes('sms-expense-tracker') 
-            ? '/sms-expense-tracker'
-            : '';
-            
-        const configPath = window.location.hostname === 'localhost'
-            ? '/config.json'
-            : `${basePath}/config.json`;
-            
-        const response = await fetch(configPath);
+        const response = await fetch('config.json');
         if (!response.ok) {
             throw new Error('Failed to load Firebase configuration');
         }
