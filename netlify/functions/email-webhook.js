@@ -29,8 +29,7 @@ exports.handler = async (event, context) => {
 
     // Decode the base64 encoded data
     const decodedBody = Buffer.from(event.body, 'base64').toString();
-    console.log('Decoded body:', decodedBody);
-
+    
     // Parse the multipart form data
     const parts = decodedBody.split('--xYzZY');
     const emailData = {};
@@ -41,9 +40,10 @@ exports.handler = async (event, context) => {
         emailData.subject = part.split('\n\n')[1].trim();
       }
     }
-
+    
     // Extract transaction details from subject
     const subject = emailData.subject;
+    console.log('subject:', subject);
     
     // Extract amount using regex
     const amountMatch = subject.match(/\$(\d+\.?\d*)/);
