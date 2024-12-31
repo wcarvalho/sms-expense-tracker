@@ -1,6 +1,6 @@
 // Import Firebase modules directly
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
+import { initializeApp } from 'firebase/app';
+import { getAnalytics } from 'firebase/analytics';
 import { 
     getFirestore, 
     collection, 
@@ -14,7 +14,7 @@ import {
     where,
     orderBy,
     getDoc 
-} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+} from 'firebase/firestore';
 
 let currentAllowance;
 
@@ -177,32 +177,31 @@ async function calculateTotalAllowance() {
     }
 }
 
-async function loadFirebaseConfig() {
-    try {
-        const response = await fetch('config.json');
-        if (!response.ok) {
-            throw new Error('Failed to load Firebase configuration');
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error loading Firebase config:', error);
-        throw error;
-    }
-}
-
-// Modify the existing code to use this config
+// Modify the initialization code
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const firebaseConfig = await loadFirebaseConfig();
-        
-        // Initialize Firebase
+        // Get the API key from the environment variable that will be injected during build
+        const apiKey = process.env.FIREBASE_API_KEY;
+
+        if (!apiKey) {
+            throw new Error('Firebase API key is not configured');
+        }
+
+        const firebaseConfig = {
+            apiKey: apiKey,
+            authDomain: "automatic-expenses.firebaseapp.com",
+            projectId: "automatic-expenses",
+            storageBucket: "automatic-expenses.firebasestorage.app",
+            messagingSenderId: "44040847013",
+            appId: "1:44040847013:web:b74a0fa66e6f99ba1ad74c",
+            measurementId: "G-7K0JLEX9KQ"
+        };
+
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         
-        // Set db directly on window
         window.db = getFirestore(app);
 
-        // Load data after Firebase is initialized
         await loadData();
     } catch (error) {
         console.error("Firebase initialization error:", error);

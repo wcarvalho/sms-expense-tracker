@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -14,23 +14,25 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Create config file
-        run: |
-          echo '{
-            "apiKey": "${{ secrets.FIREBASE_API_KEY }}",
-            "authDomain": "automatic-expenses.firebaseapp.com",
-            "projectId": "automatic-expenses",
-            "storageBucket": "automatic-expenses.firebasestorage.app",
-            "messagingSenderId": "44040847013",
-            "appId": "1:44040847013:web:b74a0fa66e6f99ba1ad74c",
-            "measurementId": "G-7K0JLEX9KQ"
-          }' > config.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-      - name: List files
-        run: ls -la
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create .env file
+        run: |
+          echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" > .env
+
+      - name: Build
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+        run: npm run build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+          publish_dir: ./dist
