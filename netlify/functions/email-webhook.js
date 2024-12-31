@@ -41,7 +41,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       body: 'Email processed',
-      headers: { 'Content-Type': 'text/plain' }¸
+      headers: { 'Content-Type': 'text/plain' }
     };
 
   } catch (error) {
