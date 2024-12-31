@@ -35,7 +35,8 @@ exports.handler = async (event, context) => {
     const emailData = {};
     
     // Extract relevant parts
-    for (const part of parts) {
+    for (const [index, part] of parts.entries()) {
+      console.log(`part ${index}:`, part);
       if (part.includes('name="subject"')) {
         // Extract the subject line (everything after the headers)
         const subjectMatch = part.match(/\n\n(.*?)(?:Dec|$)/);
