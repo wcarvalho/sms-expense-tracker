@@ -36,12 +36,23 @@ exports.handler = async (event, context) => {
     
     // Extract relevant parts
     for (const part of parts) {
-      console.log('part:', part);
       if (part.includes('name="subject"')) {
-        //emailData.subject = part.split('\n\n')[1].trim();
+        // Extract the subject line (everything after the headers)
+        const subjectMatch = part.match(/\n\n(.*?)(?:Dec|$)/);
+        if (subjectMatch) {
+          emailData.subject = subjectMatch[1].trim();
+        }
       }
     }
     
+    // Verify we found a subject
+    if (!emailData.subject) {
+      return {
+        statusCode: 400,
+        body: 'Could not find email subject',
+      };
+    }
+
     // Extract transaction details from subject
     const subject = emailData.subject;
     console.log('subject:', subject);
