@@ -179,10 +179,14 @@ async function calculateTotalAllowance() {
 
 async function loadFirebaseConfig() {
     try {
-        // Try to load from the full URL in production
-        const configPath = window.location.hostname === 'localhost' 
+        // Get the base path from the current script location
+        const basePath = window.location.pathname.includes('sms-expense-tracker') 
+            ? '/sms-expense-tracker'
+            : '';
+            
+        const configPath = window.location.hostname === 'localhost'
             ? '/config.json'
-            : '/sms-expense-tracker/config.json';
+            : `${basePath}/config.json`;
             
         const response = await fetch(configPath);
         if (!response.ok) {
