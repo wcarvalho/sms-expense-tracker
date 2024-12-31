@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const firebaseConfig = {
-            apiKey: apiKey,
+            apiKey: process.env.FIREBASE_API_KEY,
             authDomain: "automatic-expenses.firebaseapp.com",
             projectId: "automatic-expenses",
             storageBucket: "automatic-expenses.firebasestorage.app",
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
-        
+
         window.db = getFirestore(app);
 
         await loadData();

@@ -11,30 +11,25 @@ jobs:
     permissions:
       contents: write
     environment: default
+    
     steps:
       - uses: actions/checkout@v3
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-
+          
       - name: Install dependencies
         run: npm install
-
-      - name: Create .env file
-        run: |
-          echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" > .env
-
+        
       - name: Build
         env:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-          BASE_URL: '/sms-expense-tracker'
         run: npm run build
-
+        
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          destination_dir: sms-expense-tracker
+          folder: dist # Assuming your build output is in the dist directory
+          branch: gh-pages
