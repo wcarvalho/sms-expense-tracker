@@ -8,9 +8,11 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     environment: default
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Create config file
         run: |
@@ -29,4 +31,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
-          cname: cogscikid.com/sms-expense-tracker 
