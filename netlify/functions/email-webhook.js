@@ -9,6 +9,9 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Log the raw data before parsing
+    console.log('Raw webhook data:', event.body);
+    
     // Parse the raw email data from SendGrid
     const data = JSON.parse(event.body);
     
