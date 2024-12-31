@@ -14,7 +14,8 @@ exports.handler = async (event, context) => {
     
     // Decode the base64 encoded data
     const decodedBody = Buffer.from(event.body, 'base64').toString();
-    
+    console.log('Decoded body:', decodedBody);
+
     // Parse the multipart form data
     const parts = decodedBody.split('--xYzZY');
     const emailData = {};
