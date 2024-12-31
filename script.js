@@ -16,12 +16,14 @@ import {
     getDoc 
 } from 'firebase/firestore';
 
+let db;
 let currentAllowance;
 
 // Load initial data
 async function loadData() {
     try {
-        const allowanceRef = doc(window.db, 'allowance', 'current');
+        // Load current allowance
+        const allowanceRef = doc(db, 'allowance', 'current');
         const allowanceSnap = await getDoc(allowanceRef);
         if (allowanceSnap.exists()) {
             currentAllowance = Number(allowanceSnap.data().amount);
@@ -33,13 +35,19 @@ async function loadData() {
         }
 
         // Load transactions
-        const transactionsRef = collection(window.db, 'transactions');
+        const transactionsRef = collection(db, 'transactions');
         const q = query(transactionsRef, orderBy('date', 'desc'));
         const querySnapshot = await getDocs(q);
-        
+
+        console.log('looping through transactions');
+        let total = 0;
         querySnapshot.forEach((doc) => {
-            addTransactionToTable(doc.id, doc.data());
+          console.log(doc.id);
+          addTransactionToTable(doc.id, doc.data());
+          total += Number(doc.data().amount);
         });
+        currentAllowance = total;
+        updateAllowanceDisplay();
     } catch (error) {
         console.error("Error loading data:", error);
     }
@@ -52,10 +60,11 @@ function updateAllowanceDisplay() {
 async function addAllowance() {
     const amount = Number(document.getElementById('add-amount').value);
     if (isNaN(amount)) return 0;
-
+    if (amount === 0) return 0;
+  
     try {
         const newAmount = currentAllowance + amount;
-        const allowanceRef = doc(window.db, 'allowance', 'current');
+        const allowanceRef = doc(db, 'allowance', 'current');
         await setDoc(allowanceRef, {
             amount: newAmount
         });
@@ -68,10 +77,10 @@ async function addAllowance() {
             counts: true
         };
 
-        const transactionsRef = collection(window.db, 'transactions');
+        const transactionsRef = collection(db, 'transactions');
         const docRef = await addDoc(transactionsRef, transaction);
         addTransactionToTable(docRef.id, transaction);
-        
+
         currentAllowance = newAmount;
         updateAllowanceDisplay();
         document.getElementById('add-amount').value = '';
@@ -81,15 +90,16 @@ async function addAllowance() {
 }
 
 function addTransactionToTable(id, transaction) {
+
     const tbody = document.getElementById('transactions-body');
     const row = document.createElement('tr');
     
     const amount = Number(transaction.amount);
     
-    // Handle both Firestore Timestamp and JavaScript Date objects
+    // Handle both Firestore Timestamp and ISO string dates
     const date = transaction.date.toDate ? 
         transaction.date.toDate().toLocaleDateString() : 
-        transaction.date.toLocaleDateString();
+        new Date(transaction.date).toLocaleDateString();
     
     row.innerHTML = `
         <td>${transaction.description}</td>
@@ -111,7 +121,7 @@ function addTransactionToTable(id, transaction) {
 
 async function updateTransactionCount(id, counts) {
     try {
-        const transactionRef = doc(window.db, 'transactions', id);
+        const transactionRef = doc(db, 'transactions', id);
         await updateDoc(transactionRef, {
             counts: counts
         });
@@ -124,7 +134,7 @@ async function updateTransactionCount(id, counts) {
 
 async function deleteTransaction(id) {
     try {
-        const transactionRef = doc(window.db, 'transactions', id);
+        const transactionRef = doc(db, 'transactions', id);
         const transactionSnap = await getDoc(transactionRef);
         
         if (transactionSnap.exists()) {
@@ -136,7 +146,7 @@ async function deleteTransaction(id) {
             // If the transaction was counted, update the allowance
             if (transactionData.counts) {
                 const newAmount = currentAllowance - Number(transactionData.amount);
-                const allowanceRef = doc(window.db, 'allowance', 'current');
+                const allowanceRef = doc(db, 'allowance', 'current');
                 await setDoc(allowanceRef, {
                     amount: newAmount
                 });
@@ -156,7 +166,7 @@ async function deleteTransaction(id) {
 
 async function calculateTotalAllowance() {
     try {
-        const transactionsRef = collection(window.db, 'transactions');
+        const transactionsRef = collection(db, 'transactions');
         const q = query(transactionsRef, where('counts', '==', true));
         const querySnapshot = await getDocs(q);
         
@@ -165,7 +175,7 @@ async function calculateTotalAllowance() {
             total += doc.data().amount;
         });
 
-        const allowanceRef = doc(window.db, 'allowance', 'current');
+        const allowanceRef = doc(db, 'allowance', 'current');
         await setDoc(allowanceRef, {
             amount: total
         });
@@ -180,7 +190,7 @@ async function calculateTotalAllowance() {
 // Modify the initialization code
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Get the API key from the environment variable that will be injected during build
+        // Get the API key from the environment variable
         const apiKey = process.env.FIREBASE_API_KEY;
 
         if (!apiKey) {
@@ -188,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const firebaseConfig = {
-            apiKey: process.env.FIREBASE_API_KEY,
+            apiKey: apiKey,
             authDomain: "automatic-expenses.firebaseapp.com",
             projectId: "automatic-expenses",
             storageBucket: "automatic-expenses.firebasestorage.app",
@@ -200,7 +210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
 
-        window.db = getFirestore(app);
+        db = getFirestore(app);
 
         await loadData();
     } catch (error) {
