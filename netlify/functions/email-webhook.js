@@ -1,3 +1,20 @@
+const { initializeApp } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+
+// Initialize Firebase Admin (same as in sms-webhook.js)
+let firebaseApp;
+if (!firebaseApp) {
+  firebaseApp = initializeApp({
+    credential: require('firebase-admin').credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
+const db = getFirestore();
+
 exports.handler = async (event, context) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
@@ -9,9 +26,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Log the raw data before parsing
-    console.log('Raw webhook data:', event.body);
-    
+
     // Decode the base64 encoded data
     const decodedBody = Buffer.from(event.body, 'base64').toString();
     console.log('Decoded body:', decodedBody);
@@ -25,34 +40,55 @@ exports.handler = async (event, context) => {
       if (part.includes('name="subject"')) {
         emailData.subject = part.split('\n\n')[1].trim();
       }
-      if (part.includes('name="email"')) {
-        emailData.text = part.split('\n\n')[1].trim();
-      }
     }
 
-    // Log the parsed email data
-    console.log('Parsed email:', emailData);
-
-    // Check if this is a Gmail verification email
-    if (emailData.subject && emailData.subject.includes('Gmail Forwarding Confirmation')) {
-      // Extract verification code from the URL instead of looking for numbers
-      const urlMatch = emailData.text.match(/https:\/\/mail\.google\.com\/mail\/[^\s]+/);
-      if (urlMatch) {
-        console.log('Gmail Verification URL:', urlMatch[0]);
-        return {
-          statusCode: 200,
-          body: `Gmail Verification URL: ${urlMatch[0]}`,
-          headers: { 'Content-Type': 'text/plain' }
-        };
-      }
+    // Extract transaction details from subject
+    const subject = emailData.subject;
+    
+    // Extract amount using regex
+    const amountMatch = subject.match(/\$(\d+\.?\d*)/);
+    if (!amountMatch) {
+      return {
+        statusCode: 400,
+        body: 'Could not parse transaction amount',
+      };
     }
+    const amount = Number(amountMatch[1]);
 
-    // If it's not a verification email, process it normally
-    // ... your existing transaction processing code here ...
+    // Extract description (everything after "with ")
+    const descriptionMatch = subject.match(/with (.*?)$/);
+    if (!descriptionMatch) {
+      return {
+        statusCode: 400,
+        body: 'Could not parse transaction description',
+      };
+    }
+    const description = descriptionMatch[1];
+
+    // Create the transaction
+    const transaction = {
+      description: description.trim(),
+      amount: -amount, // Negative amount since it's an expense
+      date: new Date().toISOString(), // Current date
+      counts: true,
+    };
+
+    // Add to Firestore
+    const transactionsRef = db.collection('transactions');
+    await transactionsRef.add(transaction);
+
+    // Update the current allowance
+    const allowanceRef = db.doc('allowance/current');
+    const allowanceDoc = await allowanceRef.get();
+    const currentAmount = allowanceDoc.exists ? allowanceDoc.data().amount : 0;
+    
+    await allowanceRef.set({
+      amount: currentAmount + transaction.amount
+    });
 
     return {
       statusCode: 200,
-      body: 'Email processed',
+      body: 'Transaction recorded successfully',
       headers: { 'Content-Type': 'text/plain' }
     };
 
