@@ -3,11 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # or master, depending on your default branch
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: default
     steps:
       - uses: actions/checkout@v2
 
@@ -27,4 +28,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: . 
+          publish_dir: .
+          cname: cogscikid.com/sms-expense-tracker 

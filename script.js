@@ -1,24 +1,48 @@
+// Import Firebase modules directly
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
+import { 
+    getFirestore, 
+    collection, 
+    doc,
+    getDocs,
+    addDoc,
+    setDoc,
+    deleteDoc,
+    updateDoc,
+    query,
+    where,
+    orderBy,
+    getDoc 
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
 let currentAllowance;
 
 // Load initial data
 async function loadData() {
     try {
-        const allowanceDoc = await db.collection('allowance').doc('current').get();
-        if (allowanceDoc.exists) {
-            currentAllowance = allowanceDoc.data().amount;
+        const allowanceRef = doc(window.db, 'allowance', 'current');
+        const allowanceSnap = await getDoc(allowanceRef);
+        if (allowanceSnap.exists()) {
+            currentAllowance = allowanceSnap.data().amount;
+            updateAllowanceDisplay();
+        } else {
+            console.warn("No allowance document found");
+            currentAllowance = 0;
             updateAllowanceDisplay();
         }
 
         // Load transactions
-        const transactions = await db.collection('transactions')
-            .orderBy('date', 'desc')
-            .get();
+        const transactionsRef = collection(window.db, 'transactions');
+        const q = query(transactionsRef, orderBy('date', 'desc'));
+        const querySnapshot = await getDocs(q);
         
-        transactions.forEach(doc => {
+        querySnapshot.forEach((doc) => {
             addTransactionToTable(doc.id, doc.data());
         });
     } catch (error) {
         console.error("Error loading data:", error);
+        alert("Error accessing database. Please check your permissions and authentication status.");
     }
 }
 
@@ -27,12 +51,13 @@ function updateAllowanceDisplay() {
 }
 
 async function addAllowance() {
-    const amount = parseFloat(document.getElementById('add-amount').value);
+    const amount = document.getElementById('add-amount').value;
     if (isNaN(amount)) return;
 
     try {
         const newAmount = currentAllowance + amount;
-        await db.collection('allowance').doc('current').set({
+        const allowanceRef = doc(window.db, 'allowance', 'current');
+        await setDoc(allowanceRef, {
             amount: newAmount
         });
 
@@ -44,7 +69,8 @@ async function addAllowance() {
             counts: true
         };
 
-        const docRef = await db.collection('transactions').add(transaction);
+        const transactionsRef = collection(window.db, 'transactions');
+        const docRef = await addDoc(transactionsRef, transaction);
         addTransactionToTable(docRef.id, transaction);
         
         currentAllowance = newAmount;
@@ -73,7 +99,8 @@ function addTransactionToTable(id, transaction) {
 
 async function updateTransactionCount(id, counts) {
     try {
-        await db.collection('transactions').doc(id).update({
+        const transactionRef = doc(window.db, 'transactions', id);
+        await updateDoc(transactionRef, {
             counts: counts
         });
         // Recalculate allowance
@@ -85,7 +112,8 @@ async function updateTransactionCount(id, counts) {
 
 async function deleteTransaction(id) {
     try {
-        await db.collection('transactions').doc(id).delete();
+        const transactionRef = doc(window.db, 'transactions', id);
+        await deleteDoc(transactionRef);
         // Refresh the page to update the display
         location.reload();
     } catch (error) {
@@ -95,16 +123,17 @@ async function deleteTransaction(id) {
 
 async function calculateTotalAllowance() {
     try {
-        const transactions = await db.collection('transactions')
-            .where('counts', '==', true)
-            .get();
+        const transactionsRef = collection(window.db, 'transactions');
+        const q = query(transactionsRef, where('counts', '==', true));
+        const querySnapshot = await getDocs(q);
         
         let total = 0;
-        transactions.forEach(doc => {
+        querySnapshot.forEach(doc => {
             total += doc.data().amount;
         });
 
-        await db.collection('allowance').doc('current').set({
+        const allowanceRef = doc(window.db, 'allowance', 'current');
+        await setDoc(allowanceRef, {
             amount: total
         });
 
@@ -136,12 +165,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
-        const db = getFirestore(app);
-        window.db = db;
+        
+        // Set db directly on window
+        window.db = getFirestore(app);
 
         // Load data after Firebase is initialized
         await loadData();
     } catch (error) {
-        console.error('Failed to initialize app:', error);
+        console.error("Firebase initialization error:", error);
+        alert("Error connecting to database. Please check your configuration and try again.");
     }
-}); 
+});
+
+// Add event listener when the document loads
+document.getElementById('add-allowance-btn').addEventListener('click', addAllowance);
