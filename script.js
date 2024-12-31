@@ -179,7 +179,12 @@ async function calculateTotalAllowance() {
 
 async function loadFirebaseConfig() {
     try {
-        const response = await fetch('/config.json');
+        // Try to load from the full URL in production
+        const configPath = window.location.hostname === 'localhost' 
+            ? '/config.json'
+            : '/sms-expense-tracker/config.json';
+            
+        const response = await fetch(configPath);
         if (!response.ok) {
             throw new Error('Failed to load Firebase configuration');
         }
