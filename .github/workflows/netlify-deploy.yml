@@ -22,7 +22,10 @@ jobs:
       - name: Build
         env:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-        run: npm run build
+        run: |
+          npm run build
+          cp index.html dist/
+          cp styles.css dist/
 
       - name: List build output
         run: ls -la dist/

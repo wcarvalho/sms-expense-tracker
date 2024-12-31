@@ -6,8 +6,8 @@ module.exports = {
   entry: './script.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: '[name].bundle.js',
-    publicPath: '/sms-expense-tracker/'
+    filename: 'bundle.js',
+    publicPath: '/'
   },
   plugins: [
     new webpack.DefinePlugin({
