@@ -17,10 +17,14 @@ const db = getFirestore();
 
 exports.handler = async (event, context) => {
   // Only allow POST requests
+  
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return {
+      statusCode: 405,
+      body: 'Method Not Allowed',
+      headers: { 'Content-Type': 'text/plain' }
+    };
   }
-
   try {
     const params = new URLSearchParams(event.body);
     const messageBody = params.get('Body');

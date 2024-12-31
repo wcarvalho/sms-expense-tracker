@@ -1,9 +1,12 @@
 [build]
   functions = "netlify/functions"
   publish = "dist"
+  command = "npm run build"
 
 [dev]
   functions = "netlify/functions"
+  targetPort = 3000
+  command = "npm run dev"
 
 [[redirects]]
   from = "/*"
