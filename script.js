@@ -24,7 +24,7 @@ async function loadData() {
         const allowanceRef = doc(window.db, 'allowance', 'current');
         const allowanceSnap = await getDoc(allowanceRef);
         if (allowanceSnap.exists()) {
-            currentAllowance = allowanceSnap.data().amount;
+            currentAllowance = Number(allowanceSnap.data().amount);
             updateAllowanceDisplay();
         } else {
             console.warn("No allowance document found");
@@ -42,17 +42,16 @@ async function loadData() {
         });
     } catch (error) {
         console.error("Error loading data:", error);
-        alert("Error accessing database. Please check your permissions and authentication status.");
     }
 }
 
 function updateAllowanceDisplay() {
-    document.getElementById('current-allowance').textContent = currentAllowance.toFixed(2);
+    document.getElementById('current-allowance').textContent = (isNaN(currentAllowance) ? 0 : currentAllowance).toFixed(2);
 }
 
 async function addAllowance() {
-    const amount = document.getElementById('add-amount').value;
-    if (isNaN(amount)) return;
+    const amount = Number(document.getElementById('add-amount').value);
+    if (isNaN(amount)) return 0;
 
     try {
         const newAmount = currentAllowance + amount;
@@ -61,11 +60,11 @@ async function addAllowance() {
             amount: newAmount
         });
 
-        // Add transaction
+        // Add transaction with Firestore Timestamp
         const transaction = {
-            description: 'Added allowance',
+            description: 'Allowance',
             amount: amount,
-            date: new Date(),
+            date: new Date().toISOString(), // Store as ISO string for consistency
             counts: true
         };
 
@@ -85,14 +84,27 @@ function addTransactionToTable(id, transaction) {
     const tbody = document.getElementById('transactions-body');
     const row = document.createElement('tr');
     
+    const amount = Number(transaction.amount);
+    
+    // Handle both Firestore Timestamp and JavaScript Date objects
+    const date = transaction.date.toDate ? 
+        transaction.date.toDate().toLocaleDateString() : 
+        transaction.date.toLocaleDateString();
+    
     row.innerHTML = `
         <td>${transaction.description}</td>
-        <td>$${transaction.amount.toFixed(2)}</td>
-        <td>${transaction.date.toDate().toLocaleDateString()}</td>
-        <td><input type="checkbox" ${transaction.counts ? 'checked' : ''} 
-            onchange="updateTransactionCount('${id}', this.checked)"></td>
-        <td><button onclick="deleteTransaction('${id}')">Delete</button></td>
+        <td>$${amount.toFixed(2)}</td>
+        <td>${date}</td>
+        <td><input type="checkbox" ${transaction.counts ? 'checked' : ''} data-id="${id}"></td>
+        <td><button data-id="${id}" class="delete-btn">Delete</button></td>
     `;
+    
+    // Add event listeners after creating the elements
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    checkbox.addEventListener('change', (e) => updateTransactionCount(id, e.target.checked));
+    
+    const deleteBtn = row.querySelector('.delete-btn');
+    deleteBtn.addEventListener('click', () => deleteTransaction(id));
     
     tbody.prepend(row);
 }
@@ -113,9 +125,30 @@ async function updateTransactionCount(id, counts) {
 async function deleteTransaction(id) {
     try {
         const transactionRef = doc(window.db, 'transactions', id);
-        await deleteDoc(transactionRef);
-        // Refresh the page to update the display
-        location.reload();
+        const transactionSnap = await getDoc(transactionRef);
+        
+        if (transactionSnap.exists()) {
+            const transactionData = transactionSnap.data();
+            
+            // Delete the transaction
+            await deleteDoc(transactionRef);
+            
+            // If the transaction was counted, update the allowance
+            if (transactionData.counts) {
+                const newAmount = currentAllowance - Number(transactionData.amount);
+                const allowanceRef = doc(window.db, 'allowance', 'current');
+                await setDoc(allowanceRef, {
+                    amount: newAmount
+                });
+                
+                currentAllowance = newAmount;
+                updateAllowanceDisplay();
+            }
+        }
+        
+        // Remove the row from the table
+        const row = document.querySelector(`button[data-id="${id}"]`).closest('tr');
+        row.remove();
     } catch (error) {
         console.error("Error deleting transaction:", error);
     }
