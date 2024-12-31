@@ -177,26 +177,11 @@ async function calculateTotalAllowance() {
     }
 }
 
-async function loadFirebaseConfig() {
-    try {
-        const response = await fetch('config.json');
-        if (!response.ok) {
-            throw new Error('Failed to load Firebase configuration');
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error loading Firebase config:', error);
-        throw error;
-    }
-}
-
-// Modify the existing code to use this config
+// Modify the initialization code
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const firebaseConfig = await loadFirebaseConfig();
-        
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
+        // Use the global config directly
+        const app = initializeApp(window.firebaseConfig);
         const analytics = getAnalytics(app);
         
         // Set db directly on window
