@@ -38,12 +38,9 @@ exports.handler = async (event, context) => {
     for (const [index, part] of parts.entries()) {
       console.log(`part ${index}:`, part);
       if (part.includes('name="subject"')) {
-        // Extract everything after name="subject"
-        const subjectMatch = part.match(/name="subject".*?\n\n(.*?)$/s);
-        console.log('subjectMatch:', subjectMatch);
-        if (subjectMatch) {
-          emailData.subject = subjectMatch[1].trim();
-        }
+        emailData.subject = part.split('Fwd:').pop().trim();
+        console.log('emailData.subject:', emailData.subject);
+        break;
       }
     }
     
