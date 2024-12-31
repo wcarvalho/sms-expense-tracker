@@ -37,6 +37,7 @@ exports.handler = async (event, context) => {
     // Extract relevant parts
     for (const part of parts) {
       if (part.includes('name="subject"')) {
+        console.log('raw subject:', part);
         emailData.subject = part.split('\n\n')[1].trim();
       }
     }
