@@ -24,6 +24,9 @@ jobs:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
         run: npm run build
 
+      - name: List build output
+        run: ls -la dist/
+
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v2.0
         with:
