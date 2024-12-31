@@ -116,7 +116,7 @@ function addTransactionToTable(id, transaction) {
     const deleteBtn = row.querySelector('.delete-btn');
     deleteBtn.addEventListener('click', () => deleteTransaction(id));
     
-    tbody.prepend(row);
+    tbody.append(row);
 }
 
 async function updateTransactionCount(id, counts) {
