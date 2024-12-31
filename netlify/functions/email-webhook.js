@@ -12,27 +12,35 @@ exports.handler = async (event, context) => {
     // Log the raw data before parsing
     console.log('Raw webhook data:', event.body);
     
-    // Parse the raw email data from SendGrid
-    const data = JSON.parse(event.body);
+    // Decode the base64 encoded data
+    const decodedBody = Buffer.from(event.body, 'base64').toString();
     
-    // Log the entire email for debugging
-    console.log('Received email:', {
-      subject: data.subject,
-      text: data.text,
-      html: data.html
-    });
+    // Parse the multipart form data
+    const parts = decodedBody.split('--xYzZY');
+    const emailData = {};
+    
+    // Extract relevant parts
+    for (const part of parts) {
+      if (part.includes('name="subject"')) {
+        emailData.subject = part.split('\n\n')[1].trim();
+      }
+      if (part.includes('name="email"')) {
+        emailData.text = part.split('\n\n')[1].trim();
+      }
+    }
+
+    // Log the parsed email data
+    console.log('Parsed email:', emailData);
 
     // Check if this is a Gmail verification email
-    if (data.subject && data.subject.includes('Gmail Forwarding Confirmation')) {
-      // Extract verification code - it's usually a number in the email body
-      const verificationMatch = data.text.match(/\b\d{5,}\b/);
-      const verificationCode = verificationMatch ? verificationMatch[0] : null;
-
-      if (verificationCode) {
-        console.log('Gmail Verification Code:', verificationCode);
+    if (emailData.subject && emailData.subject.includes('Gmail Forwarding Confirmation')) {
+      // Extract verification code from the URL instead of looking for numbers
+      const urlMatch = emailData.text.match(/https:\/\/mail\.google\.com\/mail\/[^\s]+/);
+      if (urlMatch) {
+        console.log('Gmail Verification URL:', urlMatch[0]);
         return {
           statusCode: 200,
-          body: `Gmail Verification Code: ${verificationCode}`,
+          body: `Gmail Verification URL: ${urlMatch[0]}`,
           headers: { 'Content-Type': 'text/plain' }
         };
       }
