@@ -17,15 +17,12 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build
         env:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-        run: |
-          npm run build
-          cp index.html dist/
-          cp styles.css dist/
+        run: npm run build
 
       - name: List build output
         run: ls -la dist/
