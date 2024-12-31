@@ -5,7 +5,8 @@ module.exports = {
   entry: './script.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
+    filename: '[name].bundle.js',
+    publicPath: '/sms-expense-tracker/'
   },
   plugins: [
     new Dotenv({

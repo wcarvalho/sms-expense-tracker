@@ -29,6 +29,7 @@ jobs:
       - name: Build
         env:
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          BASE_URL: '/sms-expense-tracker'
         run: npm run build
 
       - name: Deploy to GitHub Pages
@@ -36,3 +37,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          destination_dir: sms-expense-tracker
