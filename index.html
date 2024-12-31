@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="allowance-section">
+            <h2>Available Allowance: $<span id="current-allowance">0</span></h2>
+            <div class="add-allowance">
+                <input type="number" id="add-amount" placeholder="Amount">
+                <button onclick="addAllowance()">Add Money</button>
+            </div>
+        </div>
+
+        <div class="transactions-section">
+            <h2>Transactions</h2>
+            <table id="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Count</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="transactions-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-analytics.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+        // Make these available globally
+        window.initializeApp = initializeApp;
+        window.getAnalytics = getAnalytics;
+        window.getFirestore = getFirestore;
+    </script>
+    <script src="script.js"></script>
+</body>
+</html> 
