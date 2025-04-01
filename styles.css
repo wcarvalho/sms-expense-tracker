@@ -69,6 +69,38 @@ th {
     background-color: #f8f9fa;
 }
 
+/* Category styles */
+tr.category-unorganized {
+    background-color: #FFE0B2; /* Light orange */
+}
+
+tr.category-allowance {
+    background-color: #E1BEE7; /* Light purple */
+}
+
+tr.category-need {
+    background-color: #E0E0E0; /* Light grey */
+}
+
+tr.category-reimburse {
+    background-color: #FFCDD2; /* Light red */
+}
+
+tr.category-reimbursed {
+    background-color: #BDBDBD; /* Grey */
+}
+
+.category-button {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: center;
+    color: #333;
+    width: 100%;
+}
+
 @media (max-width: 600px) {
     th, td {
         padding: 8px;

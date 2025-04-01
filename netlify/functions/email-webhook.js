@@ -15,6 +15,15 @@ if (!firebaseApp) {
 
 const db = getFirestore();
 
+// Categories
+const CATEGORIES = {
+  UNORGANIZED: 'unorganized',
+  ALLOWANCE: 'allowance',
+  NEED: 'need',
+  REIMBURSE: 'reimburse',
+  REIMBURSED: 'reimbursed'
+};
+
 exports.handler = async (event, context) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
@@ -81,21 +90,14 @@ exports.handler = async (event, context) => {
       description: description.trim(),
       amount: -amount, // Negative amount since it's an expense
       date: new Date().toISOString(), // Current date
-      counts: true,
+      category: CATEGORIES.UNORGANIZED // Default to unorganized instead of using counts
     };
 
     // Add to Firestore
     const transactionsRef = db.collection('transactions');
     await transactionsRef.add(transaction);
 
-    // Update the current allowance
-    const allowanceRef = db.doc('allowance/current');
-    const allowanceDoc = await allowanceRef.get();
-    const currentAmount = allowanceDoc.exists ? allowanceDoc.data().amount : 0;
-    
-    await allowanceRef.set({
-      amount: currentAmount + transaction.amount
-    });
+    // No need to update allowance as the category is not allowance
 
     return {
       statusCode: 200,

@@ -15,6 +15,15 @@ if (!firebaseApp) {
 
 const db = getFirestore();
 
+// Categories
+const CATEGORIES = {
+  UNORGANIZED: 'unorganized',
+  ALLOWANCE: 'allowance',
+  NEED: 'need',
+  REIMBURSE: 'reimburse',
+  REIMBURSED: 'reimbursed'
+};
+
 exports.handler = async (event, context) => {
   // Only allow POST requests
   
@@ -64,21 +73,15 @@ exports.handler = async (event, context) => {
       description: description.trim(),
       amount: -amount, // Negative amount since it's an expense
       date: new Date(dateStr).toISOString(),
-      counts: true,
+      category: CATEGORIES.UNORGANIZED // Default to unorganized instead of using counts
     };
 
     // Add to Firestore
     const transactionsRef = db.collection('transactions');
     await transactionsRef.add(transaction);
 
-    // Update the current allowance
-    const allowanceRef = db.doc('allowance/current');
-    const allowanceDoc = await allowanceRef.get();
-    const currentAmount = allowanceDoc.exists ? allowanceDoc.data().amount : 0;
-    
-    await allowanceRef.set({
-      amount: currentAmount + transaction.amount
-    });
+    // Only update allowance if the category is allowance, which isn't the case for new SMS transactions
+    // so we don't need to update the allowance here
 
     // Return success response
     return {

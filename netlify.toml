@@ -5,6 +5,7 @@
 [dev]
   functions = "netlify/functions"
   command = "npm run dev"
+  targetPort = 8080
 
 [[redirects]]
   from = "/*"

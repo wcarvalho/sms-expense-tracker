@@ -9,10 +9,11 @@ sudo npm install
 
 Testing netlify
 ```
+npm run dev
 sudo netlify dev --live
 ```
 
 Serving netlify
 ```
-sudo netlify deploy --prod   
+sudo netlify deploy --prod
 ```
