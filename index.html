@@ -10,6 +10,7 @@
     <div class="container">
         <div class="allowance-section">
             <h2>Available Allowance: $<span id="current-allowance">0</span></h2>
+            <h2>To Reimburse: $<span id="current-reimburse">0</span></h2>
             <div class="add-allowance">
                 <input type="number" id="add-amount" placeholder="Amount">
                 <button id="add-allowance-btn">Add Money</button>
@@ -18,14 +19,31 @@
 
         <div class="transactions-section">
             <h2>Transactions</h2>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search in description or notes (regex enabled)">
+                <button id="search-btn">Search</button>
+                <button id="clear-search-btn">Clear</button>
+            </div>
+            <div class="category-filters">
+                <span>Active:</span>
+                <label><input type="checkbox" class="category-filter" value="unorganized" checked> Unorganized</label>
+                <label><input type="checkbox" class="category-filter" value="allowance" checked> Allowance</label>
+                <label><input type="checkbox" class="category-filter" value="need"> Need</label>
+                <label><input type="checkbox" class="category-filter" value="reimburse" checked> Reimburse</label>
+                <label><input type="checkbox" class="category-filter" value="reimbursed"> Reimbursed</label>
+                <button id="refresh-btn">Refresh</button>
+                <button id="show-all-btn">Show All</button>
+            </div>
             <table id="transactions-table">
                 <thead>
                     <tr>
                         <th>Description</th>
                         <th>Amount</th>
+                        <th>Balance</th>
                         <th>Date</th>
                         <th>Category</th>
                         <th>Action</th>
+                        <th>Note</th>
                     </tr>
                 </thead>
                 <tbody id="transactions-body">

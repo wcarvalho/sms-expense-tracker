@@ -15,5 +15,6 @@ sudo netlify dev --live
 
 Serving netlify
 ```
+npm run build
 sudo netlify deploy --prod
 ```

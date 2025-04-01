@@ -30,6 +30,23 @@ body {
     margin-top: 10px;
 }
 
+.search-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#search-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.category-filters {
+    margin-bottom: 15px;
+}
+
 input[type="number"] {
     padding: 8px;
     border: 1px solid #ddd;
@@ -97,7 +114,7 @@ tr.category-reimbursed {
     cursor: pointer;
     font-size: 12px;
     text-align: center;
-    color: #333;
+    color: white;
     width: 100%;
 }
 
@@ -106,4 +123,33 @@ tr.category-reimbursed {
         padding: 8px;
         font-size: 14px;
     }
+}
+
+/* Date cell styling */
+.date-cell {
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.date-cell:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.date-cell:hover::after {
+    content: "";
+    font-size: 10px;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    opacity: 0.5;
+}
+
+.date-cell input[type="date"] {
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+    font-family: inherit;
+    font-size: inherit;
 } 
