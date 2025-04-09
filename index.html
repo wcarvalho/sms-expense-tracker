@@ -11,46 +11,67 @@
         <div class="allowance-section">
             <h2>Available Allowance: $<span id="current-allowance">0</span></h2>
             <h2>To Reimburse: $<span id="current-reimburse">0</span></h2>
+            <h2>Not Reimbursed: $<span id="current-not-reimbursed">0</span></h2>
             <div class="add-allowance">
                 <input type="number" id="add-amount" placeholder="Amount">
                 <button id="add-allowance-btn">Add Money</button>
             </div>
         </div>
 
-        <div class="transactions-section">
-            <h2>Transactions</h2>
-            <div class="search-container">
-                <input type="text" id="search-input" placeholder="Search in description or notes (regex enabled)">
-                <button id="search-btn">Search</button>
-                <button id="clear-search-btn">Clear</button>
+        <div class="tabs">
+            <button class="tab-button active" data-tab="expenses">Expenses</button>
+            <button class="tab-button" data-tab="plots">Plots</button>
+        </div>
+
+        <div class="tab-content active" id="expenses-tab">
+            <div class="transactions-section">
+                <h2>Transactions</h2>
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search in description or notes (regex enabled)">
+                    <button id="search-btn">Search</button>
+                    <button id="clear-search-btn">Clear</button>
+                </div>
+                <div class="category-filters">
+                    <span>Active:</span>
+                    <label><input type="checkbox" class="category-filter" value="unorganized" checked> Unorganized</label>
+                    <label><input type="checkbox" class="category-filter" value="allowance" checked> Allowance</label>
+                    <label><input type="checkbox" class="category-filter" value="need"> Need</label>
+                    <label><input type="checkbox" class="category-filter" value="reimburse" checked> Reimburse</label>
+                    <label><input type="checkbox" class="category-filter" value="reimbursed"> Reimbursed</label>
+                    <label><input type="checkbox" class="category-filter" value="not_reimbursed" checked> Not Reimbursed</label>
+                    <button id="refresh-btn">Refresh</button>
+                    <button id="show-all-btn">Show All</button>
+                </div>
+                <table id="transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Balance</th>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Action</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-body">
+                    </tbody>
+                </table>
             </div>
-            <div class="category-filters">
-                <span>Active:</span>
-                <label><input type="checkbox" class="category-filter" value="unorganized" checked> Unorganized</label>
-                <label><input type="checkbox" class="category-filter" value="allowance" checked> Allowance</label>
-                <label><input type="checkbox" class="category-filter" value="need"> Need</label>
-                <label><input type="checkbox" class="category-filter" value="reimburse" checked> Reimburse</label>
-                <label><input type="checkbox" class="category-filter" value="reimbursed"> Reimbursed</label>
-                <button id="refresh-btn">Refresh</button>
-                <button id="show-all-btn">Show All</button>
+        </div>
+
+        <div class="tab-content" id="plots-tab">
+            <div class="plots-section">
+                <h2>Allowance Over Time</h2>
+                <canvas id="allowance-chart"></canvas>
+                <h2>To Reimburse Over Time</h2>
+                <canvas id="reimburse-chart"></canvas>
+                <h2>Not Reimbursed Over Time</h2>
+                <canvas id="not-reimbursed-chart"></canvas>
             </div>
-            <table id="transactions-table">
-                <thead>
-                    <tr>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Balance</th>
-                        <th>Date</th>
-                        <th>Category</th>
-                        <th>Action</th>
-                        <th>Note</th>
-                    </tr>
-                </thead>
-                <tbody id="transactions-body">
-                </tbody>
-            </table>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js" type="module"></script>
 </body>
 </html> 

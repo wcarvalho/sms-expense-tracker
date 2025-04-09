@@ -20,7 +20,8 @@ import {
 let db;
 let currentAllowance;
 let currentReimburse;
-let activeFilters = new Set(['unorganized', 'allowance', 'reimburse']); // Default active filters
+let currentNotReimbursed;
+let activeFilters = new Set(['unorganized', 'allowance', 'reimburse', 'not_reimbursed']); // Default active filters
 let showingAll = false;
 let currentSearchRegex = null;
 
@@ -30,7 +31,15 @@ const CATEGORIES = {
     ALLOWANCE: 'allowance',
     NEED: 'need',
     REIMBURSE: 'reimburse',
-    REIMBURSED: 'reimbursed'
+    REIMBURSED: 'reimbursed',
+    NOT_REIMBURSED: 'not_reimbursed'
+};
+
+// Add after the existing imports
+let charts = {
+    allowance: null,
+    reimburse: null,
+    notReimbursed: null
 };
 
 // Load initial data
@@ -57,6 +66,7 @@ async function loadData() {
         let transactions = [];
         let allowanceTotal = 0;
         let reimburseTotal = 0;
+        let notReimbursedTotal = 0;
         let updatePromises = [];
 
         // First collect all transactions and calculate balances
@@ -100,6 +110,10 @@ async function loadData() {
                 }
             }
             
+            if (data.category === CATEGORIES.NOT_REIMBURSED) {
+                notReimbursedTotal += Number(data.amount);
+            }
+            
             transactions.push({ id, data });
         });
 
@@ -120,6 +134,7 @@ async function loadData() {
         document.getElementById('transactions-body').innerHTML = '';
         
         // Add transactions to the table if they match filters
+        let totalAmount = 0;
         transactions.forEach(({ id, data }) => {
             // Check if it matches search term
             const matchesSearch = currentSearchRegex ? 
@@ -129,8 +144,24 @@ async function loadData() {
             // Only add to table if showing all or category is active AND matches search
             if ((showingAll || activeFilters.has(data.category)) && matchesSearch) {
                 addTransactionToTable(id, data);
+                totalAmount += Number(data.amount);
             }
         });
+        
+        // Add summary row
+        const tbody = document.getElementById('transactions-body');
+        const summaryRow = document.createElement('tr');
+        summaryRow.className = 'summary-row';
+        summaryRow.innerHTML = `
+            <td><strong>Total</strong></td>
+            <td><strong>$${totalAmount.toFixed(2)}</strong></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        `;
+        tbody.appendChild(summaryRow);
         
         // Update totals in the UI
         await setDoc(allowanceRef, {
@@ -139,8 +170,15 @@ async function loadData() {
         
         currentAllowance = allowanceTotal;
         currentReimburse = reimburseTotal;
+        currentNotReimbursed = notReimbursedTotal;
         updateAllowanceDisplay();
         updateReimburseDisplay();
+        updateNotReimbursedDisplay();
+
+        // Update charts if we're on the plots tab
+        if (document.getElementById('plots-tab').classList.contains('active')) {
+            await updateCharts();
+        }
     } catch (error) {
         console.error("Error loading data:", error);
     }
@@ -181,6 +219,11 @@ function updateAllowanceDisplay() {
 
 function updateReimburseDisplay() {
     document.getElementById('current-reimburse').textContent = (isNaN(currentReimburse) ? 0 : currentReimburse).toFixed(2);
+}
+
+function updateNotReimbursedDisplay() {
+    document.getElementById('current-not-reimbursed').textContent = 
+        (isNaN(currentNotReimbursed) ? 0 : currentNotReimbursed).toFixed(2);
 }
 
 async function addAllowance() {
@@ -270,7 +313,7 @@ function addTransactionToTable(id, transaction) {
         <td>${transaction.description}</td>
         <td>$${amount.toFixed(2)}</td>
         <td>${balanceDisplay}</td>
-        <td class="date-cell" data-id="${id}">${formattedDate}</td>
+        <td>${formattedDate}</td>
         <td><button class="category-button" data-id="${id}">${transaction.category || CATEGORIES.UNORGANIZED}</button></td>
         <td><button data-id="${id}" class="delete-btn">Delete</button></td>
         <td><input type="text" class="note-input" data-id="${id}" value="${transaction.note || ''}" placeholder=""></td>
@@ -282,10 +325,6 @@ function addTransactionToTable(id, transaction) {
     
     const deleteBtn = row.querySelector('.delete-btn');
     deleteBtn.addEventListener('click', () => deleteTransaction(id));
-
-    // Add date edit event listener
-    const dateCell = row.querySelector('.date-cell');
-    dateCell.addEventListener('click', () => editDate(id, transactionDate));
 
     // Add note input event listener
     const noteInput = row.querySelector('.note-input');
@@ -303,69 +342,53 @@ function addTransactionToTable(id, transaction) {
     tbody.appendChild(row);
 }
 
-// Function to edit transaction date
-async function editDate(id, currentDate) {
-    const dateCell = document.querySelector(`.date-cell[data-id="${id}"]`);
-    if (!dateCell) return;
-    
-    // Save the original text for cancellation
-    const originalText = dateCell.textContent;
-    
-    // Create date input
-    const dateInput = document.createElement('input');
-    dateInput.type = 'date';
-    dateInput.value = formatDateForInput(currentDate);
-    
-    // Clear cell and add input
-    dateCell.textContent = '';
-    dateCell.appendChild(dateInput);
-    dateInput.focus();
-    
-    // Handle input blur (cancel if clicked outside)
-    dateInput.addEventListener('blur', () => {
-        setTimeout(() => {
-            // Only restore if the cell still contains the input
-            if (dateCell.contains(dateInput)) {
-                dateCell.textContent = originalText;
+// New function to just update the totals
+async function recalculateTotals() {
+    try {
+        const transactionsRef = collection(db, 'transactions');
+        const querySnapshot = await getDocs(transactionsRef);
+        
+        let allowanceTotal = 0;
+        let reimburseTotal = 0;
+        let notReimbursedTotal = 0;
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const amount = Number(data.amount);
+            
+            switch(data.category) {
+                case CATEGORIES.ALLOWANCE:
+                    allowanceTotal += amount;
+                    break;
+                case CATEGORIES.REIMBURSE:
+                    reimburseTotal += amount;
+                    break;
+                case CATEGORIES.NOT_REIMBURSED:
+                    notReimbursedTotal += amount;
+                    break;
             }
-        }, 150); // Small delay to allow the change event to fire first
-    });
-    
-    // Handle date change
-    dateInput.addEventListener('change', async () => {
-        try {
-            const newDate = new Date(dateInput.value);
-            
-            if (isNaN(newDate.getTime())) {
-                throw new Error('Invalid date');
-            }
-            
-            // Get transaction info to check category
-            const transactionRef = doc(db, 'transactions', id);
-            const transactionSnap = await getDoc(transactionRef);
-            const transactionData = transactionSnap.data();
-            const category = transactionData?.category;
-            
-            // Update in Firestore
-            await updateDoc(transactionRef, {
-                date: newDate.toISOString()
-            });
-            
-            // Update the cell display
-            dateCell.textContent = formatDate(newDate);
-            
-            // Recalculate balances if this is an allowance or reimburse transaction
-            if (category === CATEGORIES.ALLOWANCE || category === CATEGORIES.REIMBURSE) {
-                await loadData(); // This will recalculate all balances
-            }
-        } catch (error) {
-            console.error("Error updating date:", error);
-            dateCell.textContent = originalText;
-        }
-    });
+        });
+
+        // Update the totals
+        currentAllowance = allowanceTotal;
+        currentReimburse = reimburseTotal;
+        currentNotReimbursed = notReimbursedTotal;
+
+        // Update the displays
+        updateAllowanceDisplay();
+        updateReimburseDisplay();
+        updateNotReimbursedDisplay();
+
+        // Update allowance in Firestore
+        const allowanceRef = doc(db, 'allowance', 'current');
+        await setDoc(allowanceRef, {
+            amount: allowanceTotal
+        });
+    } catch (error) {
+        console.error("Error recalculating totals:", error);
+    }
 }
 
-// Toggle between categories
 async function toggleCategory(id) {
     try {
         const transactionRef = doc(db, 'transactions', id);
@@ -385,23 +408,14 @@ async function toggleCategory(id) {
                 category: newCategory
             });
             
-            // Update the UI
+            // Update just the UI elements for this row
             const row = document.querySelector(`tr[data-id="${id}"]`);
             row.className = `category-${newCategory}`;
             const button = row.querySelector('.category-button');
             button.textContent = newCategory;
             
-            // Need to recalculate all balances if category changes to/from ALLOWANCE or REIMBURSE
-            const needsRecalculation = 
-                oldCategory === CATEGORIES.ALLOWANCE || 
-                newCategory === CATEGORIES.ALLOWANCE || 
-                oldCategory === CATEGORIES.REIMBURSE || 
-                newCategory === CATEGORIES.REIMBURSE;
-                
-            if (needsRecalculation) {
-                // Reload data to recalculate all balances
-                await loadData();
-            }
+            // Just update the totals without reloading the table
+            await recalculateTotals();
         }
     } catch (error) {
         console.error("Error updating category:", error);
@@ -473,6 +487,229 @@ async function calculateReimburseTotal() {
     }
 }
 
+// Add this function to create/update charts
+async function updateCharts() {
+    try {
+        const transactionsRef = collection(db, 'transactions');
+        const q = query(transactionsRef, orderBy('date', 'asc'));
+        const querySnapshot = await getDocs(q);
+
+        const data = {
+            dates: [],
+            allowance: [],
+            reimburse: [],
+            notReimbursed: []
+        };
+
+        let allowanceTotal = 0;
+        let reimburseTotal = 0;
+        let notReimbursedTotal = 0;
+
+        // Group transactions by week
+        const weeklyData = new Map();
+        const startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
+
+        querySnapshot.forEach((doc) => {
+            const transaction = doc.data();
+            const date = toDateObject(transaction.date);
+            const amount = Number(transaction.amount);
+
+            // Get the start of the week for this date
+            const weekStart = new Date(date);
+            weekStart.setHours(0, 0, 0, 0);
+            weekStart.setDate(date.getDate() - date.getDay()); // Set to Sunday of the week
+
+            const weekKey = weekStart.toISOString();
+
+            if (!weeklyData.has(weekKey)) {
+                weeklyData.set(weekKey, {
+                    date: weekStart,
+                    allowance: 0,
+                    reimburse: 0,
+                    notReimbursed: 0
+                });
+            }
+
+            const weekData = weeklyData.get(weekKey);
+
+            switch(transaction.category) {
+                case CATEGORIES.ALLOWANCE:
+                    allowanceTotal += amount;
+                    weekData.allowance = allowanceTotal;
+                    break;
+                case CATEGORIES.REIMBURSE:
+                    reimburseTotal += amount;
+                    weekData.reimburse = reimburseTotal;
+                    break;
+                case CATEGORIES.NOT_REIMBURSED:
+                    notReimbursedTotal += amount;
+                    weekData.notReimbursed = notReimbursedTotal;
+                    break;
+            }
+        });
+
+        // Sort the weeks and populate the data arrays
+        const sortedWeeks = Array.from(weeklyData.values()).sort((a, b) => a.date - b.date);
+        
+        sortedWeeks.forEach(week => {
+            data.dates.push(formatDate(week.date));
+            data.allowance.push(week.allowance);
+            data.reimburse.push(week.reimburse);
+            data.notReimbursed.push(week.notReimbursed);
+        });
+
+        // Create or update charts
+        const chartConfig = {
+            type: 'line',
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14,
+                                family: 'Arial'
+                            },
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14,
+                            family: 'Arial'
+                        },
+                        bodyFont: {
+                            size: 14,
+                            family: 'Arial'
+                        },
+                        padding: 12,
+                        cornerRadius: 4,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12,
+                                family: 'Arial'
+                            },
+                            padding: 10
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12,
+                                family: 'Arial'
+                            },
+                            padding: 10,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                elements: {
+                    line: {
+                        tension: 0.4,
+                        borderWidth: 2
+                    },
+                    point: {
+                        radius: 3,
+                        hoverRadius: 5
+                    }
+                }
+            }
+        };
+
+        // Allowance chart
+        if (!charts.allowance) {
+            charts.allowance = new Chart(
+                document.getElementById('allowance-chart'),
+                {
+                    ...chartConfig,
+                    data: {
+                        labels: data.dates,
+                        datasets: [{
+                            label: 'Allowance',
+                            data: data.allowance,
+                            borderColor: '#9C27B0',
+                            backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                            fill: true
+                        }]
+                    }
+                }
+            );
+        } else {
+            charts.allowance.data.labels = data.dates;
+            charts.allowance.data.datasets[0].data = data.allowance;
+            charts.allowance.update();
+        }
+
+        // Reimburse chart
+        if (!charts.reimburse) {
+            charts.reimburse = new Chart(
+                document.getElementById('reimburse-chart'),
+                {
+                    ...chartConfig,
+                    data: {
+                        labels: data.dates,
+                        datasets: [{
+                            label: 'To Reimburse',
+                            data: data.reimburse,
+                            borderColor: '#F44336',
+                            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                            fill: true
+                        }]
+                    }
+                }
+            );
+        } else {
+            charts.reimburse.data.labels = data.dates;
+            charts.reimburse.data.datasets[0].data = data.reimburse;
+            charts.reimburse.update();
+        }
+
+        // Not Reimbursed chart
+        if (!charts.notReimbursed) {
+            charts.notReimbursed = new Chart(
+                document.getElementById('not-reimbursed-chart'),
+                {
+                    ...chartConfig,
+                    data: {
+                        labels: data.dates,
+                        datasets: [{
+                            label: 'Not Reimbursed',
+                            data: data.notReimbursed,
+                            borderColor: '#607D8B',
+                            backgroundColor: 'rgba(96, 125, 139, 0.1)',
+                            fill: true
+                        }]
+                    }
+                }
+            );
+        } else {
+            charts.notReimbursed.data.labels = data.dates;
+            charts.notReimbursed.data.datasets[0].data = data.notReimbursed;
+            charts.notReimbursed.update();
+        }
+    } catch (error) {
+        console.error("Error updating charts:", error);
+    }
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -526,6 +763,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('show-all-btn').addEventListener('click', () => {
             showingAll = true;
             loadData();
+        });
+
+        // Add tab event listeners
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons and contents
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding content
+                button.classList.add('active');
+                document.getElementById(`${button.dataset.tab}-tab`).classList.add('active');
+
+                // If switching to plots tab, update charts
+                if (button.dataset.tab === 'plots') {
+                    updateCharts();
+                }
+            });
         });
 
         // Load data after initialization
