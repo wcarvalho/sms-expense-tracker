@@ -501,10 +501,6 @@ async function updateCharts() {
             notReimbursed: []
         };
 
-        let allowanceTotal = 0;
-        let reimburseTotal = 0;
-        let notReimbursedTotal = 0;
-
         // Group transactions by week
         const weeklyData = new Map();
         const startDate = new Date();
@@ -525,26 +521,25 @@ async function updateCharts() {
             if (!weeklyData.has(weekKey)) {
                 weeklyData.set(weekKey, {
                     date: weekStart,
-                    allowance: 0,
-                    reimburse: 0,
+                    allowance: null,
+                    reimburse: null,
                     notReimbursed: 0
                 });
             }
 
             const weekData = weeklyData.get(weekKey);
 
+            // Update the week's data with the latest transaction's balance
             switch(transaction.category) {
                 case CATEGORIES.ALLOWANCE:
-                    allowanceTotal += amount;
-                    weekData.allowance = allowanceTotal;
+                    weekData.allowance = transaction.balance || 0;
                     break;
                 case CATEGORIES.REIMBURSE:
-                    reimburseTotal += amount;
-                    weekData.reimburse = reimburseTotal;
+                    weekData.reimburse = transaction.balance || 0;
                     break;
                 case CATEGORIES.NOT_REIMBURSED:
-                    notReimbursedTotal += amount;
-                    weekData.notReimbursed = notReimbursedTotal;
+                    // For not reimbursed, we need to maintain a running total within the week
+                    weekData.notReimbursed += amount;
                     break;
             }
         });
@@ -552,11 +547,22 @@ async function updateCharts() {
         // Sort the weeks and populate the data arrays
         const sortedWeeks = Array.from(weeklyData.values()).sort((a, b) => a.date - b.date);
         
+        // Keep track of last known values to fill in gaps
+        let lastAllowance = 0;
+        let lastReimburse = 0;
+        let lastNotReimbursed = 0;
+
         sortedWeeks.forEach(week => {
             data.dates.push(formatDate(week.date));
-            data.allowance.push(week.allowance);
-            data.reimburse.push(week.reimburse);
-            data.notReimbursed.push(week.notReimbursed);
+            
+            // Use last known value if no new value this week
+            lastAllowance = week.allowance !== null ? week.allowance : lastAllowance;
+            lastReimburse = week.reimburse !== null ? week.reimburse : lastReimburse;
+            lastNotReimbursed = week.notReimbursed || lastNotReimbursed;
+
+            data.allowance.push(lastAllowance);
+            data.reimburse.push(lastReimburse);
+            data.notReimbursed.push(lastNotReimbursed);
         });
 
         // Create or update charts
@@ -593,7 +599,7 @@ async function updateCharts() {
                 },
                 scales: {
                     y: {
-                        beginAtZero: true,
+                        beginAtZero: false,  // Changed to false to better show negative values
                         grid: {
                             color: 'rgba(0, 0, 0, 0.1)',
                             drawBorder: false
@@ -623,7 +629,7 @@ async function updateCharts() {
                 },
                 elements: {
                     line: {
-                        tension: 0.4,
+                        tension: 0,  // Changed to 0 to remove smoothing
                         borderWidth: 2
                     },
                     point: {
